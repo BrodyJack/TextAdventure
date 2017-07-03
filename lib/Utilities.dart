@@ -21,6 +21,10 @@ String strike(String s) {
   return new_string;
 }
 
+List<String> scrub(String input) {
+  return input.trim().toLowerCase().split(" ");
+}
+
 class VerboseResult {
   bool success;
   String error;

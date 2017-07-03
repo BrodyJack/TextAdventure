@@ -16,7 +16,7 @@ class Player {
   QuestLog questlog;
   Equipment equipped;
 
-  Player(this.name, [this.gold = 0, this.health = 100, this.hunger = 0]) {
+  Player(this.name, [this.gold = 10, this.health = 100, this.hunger = 0]) {
     this.inventory = new Inventory();
     this.skills = new Skills();
   }
@@ -26,13 +26,13 @@ class Player {
 }
 
 class Inventory {
-  List<InventoryItem> items; // 10 items max in inventory
+  List<Item> items; // 10 items max in inventory
 
   Inventory() {
     this.items = new List(10);
   }
 
-  VerboseResult pickUpItem(InventoryItem item) {
+  VerboseResult pickUpItem(Item item) {
     int location = items.indexOf(item);
     if (location != -1) {
       items[location].count++;
@@ -99,16 +99,16 @@ class Inventory {
   }
 }
 
-class InventoryItem {
+class Item {
   int count;
   String name;
   String description;
   bool occupied;
 
-  InventoryItem(this.name, this.description,
+  Item(this.name, this.description,
       {this.count = 0, this.occupied = false});
 
-  bool operator ==(other) => other is InventoryItem && other.name == name;
+  bool operator ==(other) => other is Item && other.name == name;
   int get hashCode => name.hashCode;
 
   @override
@@ -118,9 +118,30 @@ class InventoryItem {
   }
 }
 
+class Area {
+  String name;
+  String description;
+
+  // The below fields will be set after creation
+  String map;
+  List<NPC> people;
+  List<Item> items;
+  Map<String, Area> exits;
+
+  Area(this.name, this.description) {
+    this.people = new List();
+    this.items = new List();
+    this.exits = new Map();
+  }
+
+  void toName() => stdout.writeln(name);
+  void toDesc() => stdout.writeln(description);
+  void toMap() => stdout.writeln(map);
+}
+
 class Skills {}
 
-class Area {}
+class NPC {}
 
 class QuestLog {}
 
@@ -133,55 +154,74 @@ class Weapon {} // ?? how to integrate this
 class Armor {} // ?? how to integrate this
 
 class GameStateManager {
-  void process(String input, Player player) {
-    if (input.toLowerCase().contains("show i")) {
-      player.inventory.display();
-    } else if (input.toLowerCase().contains("show m")) {
-      stdout.writeln(map);
-    } else if (input.toLowerCase().contains("quit")) {
-      stdout.write("Are you sure? (y/n): ");
-      String input = stdin.readLineSync();
-      if (input.toLowerCase().contains("y")) {
-        stdout.writeln("Ending game!");
-        exit(0);
-      } else {
-        stdout.writeln("Resuming...");
-      }
-    } else if (input.toLowerCase().contains("add")) {
-      InventoryItem toAdd = new InventoryItem(input.split("add ")[1], "Default"
-          " Description");
-      VerboseResult result = player.inventory.pickUpItem(toAdd);
-      stdout.writeln(result.toString());
+
+  Player player;
+  Map<String, Function> actions;
+  List<String> words;
+
+  GameStateManager(this.player) {
+    this.actions =
+    {"map": HandleMap, "inventory": HandleInventory, "quit": HandleQuit,
+     "add": HandleTake, "pickup": HandleTake, "grab": HandleTake,
+     "take": HandleTake, "where": HandleLocation, "travel": HandleMovement,
+     "go": HandleMovement,};
+  }
+
+
+  void process(String input) {
+
+    List<String> words_split = scrub(input);
+    if (words_split.length == 0) {
+      stdout.writeln("Could not recognize input.");
+      return;
+    }
+
+    this.words = words_split;
+
+    if (actions.containsKey(words[0])) {
+      actions[words[0]]();
     } else {
       stdout.writeln("Could not recognize input.");
     }
   }
 
-  String map = r"""
-                                               //////
-                    Lumbridge                ///////
-                                          /////////
-                                         /////////xxx
-             XXXXXXX                    /////////xxxx
-     XXXXXXXXXXXXXXX                   /////////xxxxx
-  XXXXXXXXXXXXXXXXXX                 //////////xxxxxx
-  XXXXXXXXXXXXXXXXXX                 /////////xxxxxxx
- XXXXXXXXXXXXXXXXXXXX+-------------------------->xxxx      x
- XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXxxxx
-XXXXXXX+----+XXXXXXXX<--------------------------+xxx
-XXXXXXX|----|XXXXXX               /////////xxxxxxx x
- XXXXXX|----|XXXXXXXXX           /////////xxxxxxxxxx
- XXXXXX|----|XXXXXXXXXXX        /////////xxxxxxxxx x
-  XXXXX+----+XXXXX+--+XXX     //////////xxxxxxxxxx x
-    XXXXXXXXXXXXXX|--|XXXXX  ////////// xxxxxx xx
-         XXXXXXXXX|--|XXXXXX////////// xxxxxxxxxx
-         XXXXXXXXX+--+XXXXX /////////  xxxxxxxxx
-              XXXXXXXXXXXX /////////   xxxxxxxxxx
-                XXXXXXXXXX//////////      xxxxxxx
-                     XXX  /////////        xxxxxx
-                            //////
-                             / //
-  """;
+  void HandleInventory() {
+    player.inventory.display();
+  }
+
+  void HandleMap() {
+    player.currentLocation.toMap();
+  }
+
+  void HandleLocation() {
+    player.currentLocation.toName();
+    player.currentLocation.toDesc();
+  }
+
+  void HandleQuit() {
+    stdout.write("Are you sure? (y/n): ");
+    String input = stdin.readLineSync();
+    if (input.toLowerCase().contains("y")) {
+      stdout.writeln("Ending game!");
+      exit(0);
+    } else {
+      stdout.writeln("Resuming...");
+    }
+  }
+
+  void HandleMovement() {
+    //TODO: Implement movement here
+    // IDEA!!! Implement teleporting for easier traveling if you have the
+    // resources
+  }
+
+  void HandleTake() {
+    //TODO: Use below as reference. Decide how to do this.
+    //InventoryItem toAdd = new InventoryItem(input.split("add ")[1], "Default"
+    //    " Description");
+    //VerboseResult result = player.inventory.pickUpItem(toAdd);
+    //stdout.writeln(result.toString());
+  }
 
 } // ?? details
 
